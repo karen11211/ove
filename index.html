@@ -1,0 +1,87 @@
+<!DOCTYPE html>
+<html lang="ar">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>@arix & @karen</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body, html {
+            height: 100%;
+            width: 100%;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            background-color: #000;
+            overflow: hidden;
+            font-family: 'Arial', sans-serif;
+        }
+
+        /* الطبقة التي تحمل الصورة */
+        .bg-image {
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            /* استخدمت هنا الرابط المباشر للملف لضمان التشغيل */
+            background-image: url('https://i.postimg.cc/NfczbbPN/8aa9c790-1cff-4e55-9aa4-4888d8703064.png');
+            background-repeat: no-repeat;
+            background-position: center center;
+            background-size: cover;
+            filter: brightness(0.6);
+            z-index: -1;
+        }
+
+        .container {
+            text-align: center;
+            animation: fadeIn 2s ease-in-out;
+        }
+
+        .names {
+            font-size: 4.5rem;
+            font-weight: bold;
+            color: #ffffff;
+            text-shadow: 0 0 20px #ff0000, 0 0 40px rgba(0,0,0,0.8);
+            margin-bottom: 5px;
+        }
+
+        .discord-text {
+            font-size: 1.8rem;
+            color: rgba(255, 255, 255, 0.8);
+            text-decoration: none;
+            letter-spacing: 5px;
+            font-weight: 300;
+            transition: 0.5s;
+            display: block;
+            text-shadow: 0 0 10px rgba(0,0,0,1);
+        }
+
+        .discord-text:hover {
+            color: #ff0000;
+            letter-spacing: 10px;
+            text-shadow: 0 0 20px #ff0000;
+        }
+
+        @keyframes fadeIn {
+            from { opacity: 0; transform: translateY(10px); }
+            to { opacity: 1; transform: translateY(0); }
+        }
+    </style>
+</head>
+<body>
+
+    <div class="bg-image"></div>
+
+    <div class="container">
+        <div class="names">hacked by @arix & @karen</div>
+        <a href="https://discord.gg/ove" target="_blank" class="discord-text">discord.gg/ove</a>
+    </div>
+
+</body>
+</html>
